@@ -214,5 +214,5 @@ export const DropsideInput = styled.input` /* Sidebar conatiner  */
     font-size: 20px;
     border-bottom: 2px solid #fff;
     width: calc(100% - 50px);
-    margin-bottom: 20px;
+    margin-bottom: 15px;
 ` 
