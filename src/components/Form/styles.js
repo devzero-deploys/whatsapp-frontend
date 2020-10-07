@@ -202,7 +202,7 @@ export const SearchInput = styled.input`
 export const Label = styled.label` /* Sidebar conatiner  */
     width: calc(100% - 25px);
     margin-left: 25px;
-    margin-top: 15px;;
+    margin-top: 5px;;
     font-size: 15px;
     color: green;
 `
