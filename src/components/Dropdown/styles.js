@@ -8,6 +8,7 @@ export const Container = styled.div`
     right: 20px;
     top: 40px;
     background-color: #fff;
+    z-index: 101;
 `;
 
 export const Item = styled.div`

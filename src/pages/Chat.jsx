@@ -14,13 +14,6 @@ function Chat() {
   const [chatDropdown, setChatDropdown] = useState(false);
   const [profileDropdown, setProfileDropdown] = useState(false);
 
-  function hideDropdown() {
-    if (chatDropdown || profileDropdown) {
-      setChatDropdown(false);
-      setProfileDropdown(false);
-    };
-  };
-
   useEffect(_ => {
     axios.get(ROUTES.GET_ROOMS)
       .then(resp => {
@@ -66,6 +59,16 @@ function Chat() {
       };
     });
 
+    roomChannel.bind('updated', async updatedRoom => {
+      await axios.get(ROUTES.GET_ROOMS)
+        .then(resp => {
+          setRooms(resp.data)
+          if (currentRoom._id === updatedRoom._id) {
+            setCurrentRoom(currentRoom)
+          }
+        })
+    })
+
     return () => {
       messageChannel.unbind_all();
       messageChannel.unsubscribe();
@@ -74,7 +77,14 @@ function Chat() {
       roomChannel.unsubscribe();
     }
 
-  }, [messages, rooms, currentRoom._id]);
+  }, [messages, rooms, currentRoom]);
+
+  function hiddenDropdown() {
+    if (chatDropdown || profileDropdown) {
+      setChatDropdown(false);
+      setProfileDropdown(false);
+    };
+  };
 
   return (
     <>
@@ -85,7 +95,7 @@ function Chat() {
 
         profileDropdown={profileDropdown}
         setProfileDropdown={setProfileDropdown}
-        hideDropdown={hideDropdown}
+        hiddenDropdown={hiddenDropdown}
       />
       <ChatContainer
         currentRoom={currentRoom}
@@ -95,7 +105,7 @@ function Chat() {
 
         chatDropdown={chatDropdown}
         setChatDropdown={setChatDropdown}
-        hideDropdown={hideDropdown}
+        hiddenDropdown={hiddenDropdown}
       />
     </>
   )

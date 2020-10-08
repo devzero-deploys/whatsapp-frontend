@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useContext } from 'react';
 import axios from '../constants/axios';
 import Fuse from 'fuse.js';
+import ScrollToBottom from 'react-scroll-to-bottom'
 
 import { UserContext } from '../context/userContext';
 import { Header, Dropdown, Dropside, Chat, Form } from '../components';
@@ -19,15 +20,20 @@ function ChatContainer({
     setRooms,
     chatDropdown,
     setChatDropdown,
-    hideDropdown
+    hiddenDropdown
 }) {
     const { user } = useContext(UserContext);
 
     const [newMessage, setNewMessage] = useState('');
 
-    const [searchMessage, setSearchMessage] = useState('');
+    const [groupContainer, setGroupContainer] = useState(false);
     const [searchContainer, setSearchContainer] = useState(false);
+
+    const [searchMessage, setSearchMessage] = useState('');
     const [searchResults, setSearchResults] = useState([]);
+
+    const [roomName, setRoomName] = useState('');
+    const [roomImage, setRoomImage] = useState('')
 
     const [warning, setWarning] = useState('');
 
@@ -43,6 +49,11 @@ function ChatContainer({
 
     }, [searchMessage, messages]);
 
+    useEffect(_ => {
+        setRoomName(currentRoom.name)
+        setRoomImage(currentRoom?.image)
+    }, [currentRoom]);
+
     async function sendMessage(e) {
         e.preventDefault();
 
@@ -56,9 +67,9 @@ function ChatContainer({
     };
 
     async function deleteRoom() {
-        await axios.post(ROUTES.DELETE_ROOM, { 
-            room: currentRoom, 
-            username: user.username 
+        await axios.post(ROUTES.DELETE_ROOM, {
+            room: currentRoom,
+            username: user.username
         })
             .then(async resp => {
                 const error = resp.data.error
@@ -79,14 +90,48 @@ function ChatContainer({
                     })
             })
 
-        hideDropdown()
+        hiddenDropdown()
+    }
+
+    function toggleContainer(container) {
+        if (container === 'group') {
+            setGroupContainer(true);
+            setSearchContainer(false);
+        } else {
+            setGroupContainer(false);
+            setSearchContainer(true);
+        };
+    };
+
+    async function updateRoom(e) {
+        e.preventDefault();
+
+        await axios.post(ROUTES.UPDATE_ROOM, {
+            username: user.username,
+            room: currentRoom,
+            data: {
+                name: roomName,
+                image: roomImage
+            }
+        })
+            .then(async resp => {
+                const roomUpdated = resp.data.roomUpdated
+                await axios.get(ROUTES.GET_ROOMS)
+                    .then(resp => {
+                        setRooms(resp.data)
+                        setCurrentRoom(roomUpdated)
+                    })
+            })
     }
 
     return (
         <>
-            <Chat.Container onClick={_ => hideDropdown()}>
-                <Header borderBottom>
-                    <Header.Picture src={currentRoom?.image} />
+            <Chat.Container onClick={_ => hiddenDropdown()}>
+                <Header borderBottom padding="none">
+                    <IconButton onClick={_ => toggleContainer('group')}>
+                        <Header.Picture src={currentRoom?.image} />
+                    </IconButton>
+
                     <Header.Info>
                         <Header.RoomName>{currentRoom?.name}</Header.RoomName>
                         <Header.LastMessage>
@@ -96,36 +141,43 @@ function ChatContainer({
                         </Header.LastMessage>
                     </Header.Info>
                     <Header.Right>
-                        <IconButton onClick={_ => setSearchContainer(true)}>
+                        <IconButton onClick={_ => toggleContainer('search')}>
                             <SearchOutlined />
                         </IconButton>
                         <IconButton onClick={_ => setChatDropdown(!chatDropdown)}>
                             <MoreVert />
                             <Dropdown showDropdown={chatDropdown}>
-                                <Dropdown.Item onClick={_ => deleteRoom()}>Delete room</Dropdown.Item>
+                                <Dropdown.Item onClick={_ => toggleContainer('group')}>
+                                    Group Info
+                                </Dropdown.Item>
+                                <Dropdown.Item onClick={_ => deleteRoom()}>
+                                    Delete room
+                                </Dropdown.Item>
                             </Dropdown>
                         </IconButton>
                     </Header.Right>
                 </Header>
-                <Chat>
-                    {warning ? <Chat.Warning>{warning}</Chat.Warning> : null}
+                <ScrollToBottom className="scroll-to-bottom">
+                    <Chat>
+                        {warning ? <Chat.Warning>{warning}</Chat.Warning> : null}
 
-                    {messages.map(message => {
-                        return (
-                            message.username === user.username ?
-                                <Chat.MessageSender key={`${message.username}-${message.timestamp}`}>
-                                    {message.message}
-                                    <Chat.TimeStamp>{message.timestamp}</Chat.TimeStamp>
-                                </Chat.MessageSender>
-                                :
-                                <Chat.Message key={`${message.username}-${message.timestamp}`}>
-                                    <Chat.Username>{message.username}</Chat.Username>
-                                    {message.message}
-                                    <Chat.TimeStamp>{message.timestamp}</Chat.TimeStamp>
-                                </Chat.Message>
-                        )
-                    })}
-                </Chat>
+                        {messages.map(message => {
+                            return (
+                                message.username === user.username ?
+                                    <Chat.MessageSender key={`${message.username}-${message.timestamp}`}>
+                                        {message.message}
+                                        <Chat.TimeStamp>{message.timestamp}</Chat.TimeStamp>
+                                    </Chat.MessageSender>
+                                    :
+                                    <Chat.Message key={`${message.username}-${message.timestamp}`}>
+                                        <Chat.Username>{message.username}</Chat.Username>
+                                        {message.message}
+                                        <Chat.TimeStamp>{message.timestamp}</Chat.TimeStamp>
+                                    </Chat.Message>
+                            )
+                        })}
+                    </Chat>
+                </ScrollToBottom>
                 <Form.MessageContainer>
                     <InsertEmotionIcon />
                     <Form.Message>
@@ -138,8 +190,8 @@ function ChatContainer({
                 </Form.MessageContainer>
             </Chat.Container>
             {searchContainer ?
-                <Dropside position="none" width="30vw" onClick={_ => hideDropdown()}>
-                    <Header>
+                <Dropside position="none" width="30vw" onClick={_ => hiddenDropdown()}>
+                    <Header padding="none" backgroundColor="#fff">
                         <Dropside.SearchTitle>
                             <CloseIcon onClick={_ => setSearchContainer(false)} />
                             Search messages
@@ -174,7 +226,29 @@ function ChatContainer({
                     </Dropside.MessagesContainer>
                 </Dropside>
                 :
-                null
+                groupContainer ?
+                    <Dropside position="none" width="30vw">
+                        <Header padding="none" backgroundColor="#f7f7f7">
+                            <Dropside.SearchTitle>
+                                <CloseIcon onClick={_ => setGroupContainer(false)} />
+                                Group Info
+                        </Dropside.SearchTitle>
+                        </Header>
+                        <Dropside.PictureContainer>
+                            <Dropside.Picture src={roomImage} />
+                        </Dropside.PictureContainer>
+                        <Form onSubmit={updateRoom} backgroundColor="#ededed">
+                            <Form.Label>Chat name</Form.Label>
+                            <Form.DropsideInput value={roomName} onChange={e => setRoomName(e.target.value)} />
+
+                            <Form.Label>Chat image URL</Form.Label>
+                            <Form.DropsideInput value={roomImage} onChange={e => setRoomImage(e.target.value)} />
+
+                            <Form.DropsideSubmit>Change</Form.DropsideSubmit>
+                        </Form>
+                    </Dropside>
+                    :
+                    null
             }
         </>
     );
