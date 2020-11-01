@@ -6,7 +6,7 @@ export const GlobalStyles = createGlobalStyle`
         font-family: 'Roboto', sans-serif;
 
         ::-webkit-scrollbar {
-            width: 0px;
+            width: 0px !important;
         }
     }
 
