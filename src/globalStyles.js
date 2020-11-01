@@ -4,6 +4,10 @@ export const GlobalStyles = createGlobalStyle`
     * {
         margin: 0;
         font-family: 'Roboto', sans-serif;
+
+        ::-webkit-scrollbar {
+            width: 0px;
+        }
     }
 
     .app {
